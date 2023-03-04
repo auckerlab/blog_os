@@ -2,50 +2,21 @@
 #![no_std] // not link to Rust std lib
 #![no_main] // 
 #![feature(custom_test_frameworks)]
-#![test_runner(crate::test_runner)]
+// #![test_runner(crate::test_runner)]
+#![test_runner(blog_os::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
 use core::panic::PanicInfo;
+use blog_os::println;
 
-use uart_16550::SerialPort;
-use spin::Mutex;
-use lazy_static::lazy_static;
-
-mod vga_buffer;
-mod serial;
+// mod vga_buffer;
+// mod serial;
 
 // fn main() {
     // println!("Hello, world!");
 // }
 
-/// invoked when panic
-#[cfg(not(test))] // new attribute
-#[panic_handler]
-// This function cannot return, diverging function, 'never' type
-fn panic(info: &PanicInfo) -> ! {
-    println!("{}", info);
-    loop {}
-}
-
-// our panic handler in test mode
-#[cfg(test)]
-#[panic_handler]
-fn panic(info: &PanicInfo) -> ! {
-    serial_println!("[failed]\n");
-    serial_println!("Error: {}\n", info);
-    exit_qemu(QemuExitCode::Failed);
-    loop {}
-}
-
 static HELLO: &[u8] = b"Hello World!";
-
-lazy_static! {
-    pub static ref SERIAL1: Mutex<SerialPort> = {
-        let mut serial_port = unsafe { SerialPort::new(0x3F8) };
-        serial_port.init();
-        Mutex::new(serial_port)
-    };
-}
 
 #[no_mangle]
 // this mean no name mangling which ensure Rust compiler output a _start funciton
@@ -62,51 +33,90 @@ pub extern "C" fn _start() -> ! {
 
     // loop {}
     // vga_buffer::print_something();
-    use core::fmt::Write;
-    vga_buffer::WRITER.lock().write_str("Hello agains").unwrap();
-    write!(vga_buffer::WRITER.lock(), ", some numbers: {} {}", 42, 1.339).unwrap();
-    println!("\n");
+    // use core::fmt::Write;
+    // vga_buffer::WRITER.lock().write_str("Hello agains").unwrap();
+    // write!(vga_buffer::WRITER.lock(), ", some numbers: {} {}", 42, 1.339).unwrap();
+    // println!("\n");
     println!("HELLO WORLD {}", "!");
 
     #[cfg(test)]
     test_main();
-    panic!("Some panic message");
+    // panic!("Some panic message");
 
     loop {}
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[repr(u32)]
-pub enum QemuExitCode {
-    Success = 0x10,
-    Failed = 0x11,
+/// invoked when panic
+#[cfg(not(test))] // new attribute
+#[panic_handler]
+// This function cannot return, diverging function, 'never' type
+fn panic(info: &PanicInfo) -> ! {
+    println!("{}", info);
+    loop {}
 }
 
-pub fn exit_qemu(exit_code: QemuExitCode) {
-    use x86_64::instructions::port::Port;
-
-    unsafe {
-        let mut port = Port::new(0xf4);
-        port.write(exit_code as u32);
-    }
-}
-
+// our panic handler in test mode
 #[cfg(test)]
-fn test_runner(tests: &[&dyn Fn()]) {
-    serial_println!("Running {} tests", tests.len());
-    println!("Running {} tests", tests.len());
-    for test in tests {
-        test();
-    }
-    /// new 
-    exit_qemu(QemuExitCode::Success);
+#[panic_handler]
+fn panic(info: &PanicInfo) -> ! {
+    // serial_println!("[failed]\n");
+    // serial_println!("Error: {}\n", info);
+    // exit_qemu(QemuExitCode::Failed);
+    // loop {}
+    blog_os::test_panic_handler(info)
 }
 
-#[test_case]
-fn trivial_assertion() {
-    serial_print!("trivial assertion... ");
-    print!("trivial assertion... ");
-    assert_eq!(0, 1);
-    println!("[ok]");
-    serial_println!("[ok]");
-}
+// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// #[repr(u32)]
+// pub enum QemuExitCode {
+//     Success = 0x10,
+//     Failed = 0x11,
+// }
+
+// pub fn exit_qemu(exit_code: QemuExitCode) {
+//     use x86_64::instructions::port::Port;
+
+//     unsafe {
+//         let mut port = Port::new(0xf4);
+//         port.write(exit_code as u32);
+//     }
+// }
+
+// pub trait Testable {
+//     fn run(&self) -> ();
+// }
+
+// impl<T> Testable for T
+// where 
+//     T: Fn(),
+// {
+//     fn run(&self) {
+//         serial_print!("{}...\t", core::any::type_name::<T>());
+//         self();
+//         serial_println!("[ok]");
+//     }
+// }
+
+// #[cfg(test)]
+// // fn test_runner(tests: &[&dyn Fn()]) {
+// fn test_runner(tests: &[&dyn Testable]) {
+//     serial_println!("Running {} tests", tests.len());
+//     println!("Running {} tests", tests.len());
+//     for test in tests {
+//         // test();
+//         test.run();
+//     }
+//     /// new 
+//     exit_qemu(QemuExitCode::Success);
+// }
+
+// #[test_case]
+// fn trivial_assertion() {
+//     // serial_print!("trivial assertion... ");
+//     // print!("trivial assertion... ");
+//     assert_eq!(1, 1);
+//     // println!("[ok]");
+//     // serial_println!("[ok]");
+
+//     // loop {}
+// }
