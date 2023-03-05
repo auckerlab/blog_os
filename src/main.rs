@@ -39,10 +39,15 @@ pub extern "C" fn _start() -> ! {
     // println!("\n");
     println!("HELLO WORLD {}", "!");
 
+    blog_os::init();  // new
+    // invoke a breakpoint exception
+    x86_64::instructions::interrupts::int3();  // new
+
     #[cfg(test)]
     test_main();
     // panic!("Some panic message");
 
+    println!("it did not crash!");
     loop {}
 }
 
