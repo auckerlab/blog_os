@@ -46,23 +46,30 @@ pub extern "C" fn _start() -> ! {
     // x86_64::instructions::interrupts::int3();  // new
 
     // iterative fault
-    fn stack_overflow() {
-        stack_overflow();  // every time iterative will cause the return address into the stack.
-    }
+    // fn stack_overflow() {
+    //     stack_overflow();  // every time iterative will cause the return address into the stack.
+    // }
     // trigger stackoverflow
-    stack_overflow();
+    // stack_overflow();
 
     // trigger a page fault
-    unsafe {
-        *(0xdeadbeef as *mut u64) = 42;
-    };
+    // unsafe {
+    //     *(0xdeadbeef as *mut u64) = 42;
+    // };
 
     #[cfg(test)]
     test_main();
     // panic!("Some panic message");
 
     println!("it did not crash!");
-    loop {}
+    // loop {
+    //     // use blog_os::print;
+    //     // for _ in 0..10000 {
+    //     //     print!("-");
+    //     // }
+    // }
+
+    blog_os::hlt_loop();  // new
 }
 
 /// invoked when panic
@@ -71,7 +78,8 @@ pub extern "C" fn _start() -> ! {
 // This function cannot return, diverging function, 'never' type
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
-    loop {}
+    // loop {}
+    blog_os::hlt_loop(); // new
 }
 
 // our panic handler in test mode

@@ -28,10 +28,18 @@ pub fn exit_qemu(exit_code: QemuExitCode) {
     }
 }
 
+pub fn hlt_loop() -> ! {
+    loop {
+        x86_64::instructions::hlt();
+    }
+}
+
 /// follow code block is for interrupt
 pub fn init() {
     gdt::init(); // new
     interrupts::init_idt();
+    unsafe { interrupts::PICS.lock().initialize() }; // new for PIC 8259
+    x86_64::instructions::interrupts::enable();  // enable interrupt for CPU
 }
 
 pub trait Testable {
@@ -60,7 +68,8 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
     serial_println!("[failed]\n");
     serial_println!("Error: {}\n", info);
     exit_qemu(QemuExitCode::Failed);
-    loop {}
+    // loop {}
+    hlt_loop();  // new
 }
 
 /// Entry point for `cargo test`
@@ -69,7 +78,8 @@ pub fn test_panic_handler(info: &PanicInfo) -> ! {
 pub extern "C" fn _start() -> ! {
     init();  // new
     test_main();
-    loop {}
+    // loop {}
+    hlt_loop();  // new
 }
 
 #[cfg(test)]
