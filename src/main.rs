@@ -40,8 +40,22 @@ pub extern "C" fn _start() -> ! {
     println!("HELLO WORLD {}", "!");
 
     blog_os::init();  // new
+
+    /// the following was implemented in interrupt.rs file, so no 
     // invoke a breakpoint exception
-    x86_64::instructions::interrupts::int3();  // new
+    // x86_64::instructions::interrupts::int3();  // new
+
+    // iterative fault
+    fn stack_overflow() {
+        stack_overflow();  // every time iterative will cause the return address into the stack.
+    }
+    // trigger stackoverflow
+    stack_overflow();
+
+    // trigger a page fault
+    unsafe {
+        *(0xdeadbeef as *mut u64) = 42;
+    };
 
     #[cfg(test)]
     test_main();
